@@ -55,3 +55,33 @@
 
    **Impact:**  
    In this mode, the scheduler will try to place the pods on different nodes. However, if it cannot find an empty node (like in the 3-replica scenario above), it will place the pod on an existing node anyway rather than leaving it Pending.
+
+
+## Part 4: Deploy Backend API with Node Affinity
+
+### Questions to Answer
+
+1. **On which node(s) are the backend pods scheduled? Why?**
+
+    **Answer:**
+    The backend pods are scheduled on worker-node-2.
+
+    **Reason:**
+    Although worker-node-1 has the preferred ssd storage, only worker-node-2 satisfies the mandatory `requiredDuringScheduling` rule for the tier: backend label.
+
+2. **What's the difference between `requiredDuringScheduling` and `preferredDuringScheduling` ?**
+    
+    **Required:**
+    This is a strict constraint (hard affinity). If no node matches the rule, the pod remains Pending.
+    
+    **Preferred:**
+    This is a weighted preference (soft affinity). The scheduler will try to meet this rule to "score" nodes higher, but it will still schedule the pod on a non-matching node if necessary
+
+3. Can the backend pods communicate with postgres and redis? Demonstrate
+
+    **Answer:**
+    Yes, the connectivity is successful.
+    
+    **Demonstration:**
+    The nslookup results show that the internal Kubernetes DNS (CoreDNS) correctly maps the service names to their ClusterIPs, and the curl command confirms the backend service is reachable on port 8080.
+    
