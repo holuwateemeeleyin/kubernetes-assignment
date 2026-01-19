@@ -84,4 +84,33 @@
     
     **Demonstration:**
     The nslookup results show that the internal Kubernetes DNS (CoreDNS) correctly maps the service names to their ClusterIPs, and the curl command confirms the backend service is reachable on port 8080.
+
+## Part 5: Deploy Frontend with Multiple Replicas
+### Questions to Answer
+
+1. **Where are all the frontend pods scheduled? Why?**
     
+    **Answer:**
+    All pods are scheduled on worker-node-1.
+    
+    **Why:**
+    Because of the nodeSelector in the deployment manifest which requires the tier: frontend label, which only exists on worker-node-1.
+
+2. **What happens if you try to scale to 10 replicas on a single node?**
+    
+    **Answer:** 
+    The pods might stay in a Pending state.
+    
+    **Why:**
+    A single node has limited CPU and Memory; once the aggregate requests of the 10 pods exceed the node's capacity, the scheduler cannot place more pods there.
+
+3. **How does the NodePort service distribute traffic across replicas?**
+
+    **Answer:**
+    It uses kube-proxy. Traffic hitting port 30080 on any node is intercepted and forwarded to the frontend pods, regardless of which node they are actually running on.
+
+4. **Access the application from your browser using http://<NODE_IP>:30080. Does it work?**
+
+    **Answer:**
+    No, it(http://172.31.26.165:30080) does not work directly from our local computer's browser. This is because the IP is internal AWS IP. It's a private address that only exist inside AWS data center to lab network. To demonstrate it works, we use the curl command; That is `curl http://172.31.26.165:30080` from the Control Plane
+
