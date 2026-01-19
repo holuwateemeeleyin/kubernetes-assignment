@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-cache
+  namespace: ecommerce
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - redis
+            topologyKey: "kubernetes.io/hostname"
+      # We add tolerations so it can sit on our tainted nodes
+      tolerations:
+      - key: "workload"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
