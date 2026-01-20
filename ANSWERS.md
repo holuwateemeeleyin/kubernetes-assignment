@@ -114,3 +114,20 @@
     **Answer:**
     No, it(http://172.31.26.165:30080) does not work directly from our local computer's browser. This is because the IP is internal AWS IP. It's a private address that only exist inside AWS data center to lab network. To demonstrate it works, we use the curl command; That is `curl http://172.31.26.165:30080` from the Control Plane
 
+## Part 6: Create Static Pods for Monitoring (45minutes)
+### Questions to Answer:
+1. **What happens when you try to delete a static pod? Why?**
+    The pod appears to be deleted briefly, but it is immediately recreated (or never actually leaves the "Running" state)
+    **Why:** 
+    Because the Kubelet on worker-node-1 is the "owner" of this pod, not the Control Plane. As long as the manifest file exists in /etc/kubernetes/manifests, the Kubelet will ensure the pod is running.
+
+2. **How would you actually remove a static pod?**
+    By SSH into the specific node (worker-node-1) and delete or move the manifest file out of the staticPodPath directory. Once the file is gone, the Kubelet stops the pod.
+
+3. **Where does the static pod show up when you run `kubectl get pods -A`?**
+    It shows up in the kube-system namespace.
+
+4. **What are the use cases for static pods?**
+    - Node-Level Agents: Running monitoring or logging agents that must start as soon as the Kubelet starts, without waiting for the scheduler.
+
+    - Bootstrapping: Running Control Plane components (like kube-apiserver or etcd) before the cluster is fully operational.
