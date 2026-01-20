@@ -131,3 +131,35 @@
     - Node-Level Agents: Running monitoring or logging agents that must start as soon as the Kubelet starts, without waiting for the scheduler.
 
     - Bootstrapping: Running Control Plane components (like kube-apiserver or etcd) before the cluster is fully operational.
+
+## Part 7: Troubleshooting and Recovery (60minutes)
+### Task 7.1: Simulate Node Failure
+### Questions:
+1. **What happened to the pods running on worker-node-1?**
+    The regular pods (like the Frontend replicas) were terminated on worker-node-1.
+
+2. **Did all pods get rescheduled? Which ones didn't and why?**
+    No, the Frontend pods stayed in a `Pending` state
+    Why: The Frontend pods have a `nodeSelector` for `tier: frontend`. Since `worker-node-1` was the only node with that label and we were made to drain by the command(`kubectl drain worker-node-1 --ignore-daemonsets --delete-emptydir-data`), the pods had nowhere else to go.
+
+3. What happened to the static pod?
+    Nothing, the monitoring-agent stayed running on worker-node-1.
+    **Reason:**
+    Static pods are managed by the local Kubelet, not the Control Plane. The drain command communicates with the API server to evict pods, but since the API server doesn't "own" the static pod, it cannot evict it.
+
+### Questions to Answer:
+1. **Why aren't the pods scheduling?**
+    The resource requests are far too high for the nodes to handle. The pods requested more CPU (5000m) and Memory (10Gi) than any single node in the cluster has available.
+
+2. **What kubectl commands did you use to diagnose the issue?**
+    `kubectl get pods -l app=broken` to see the Pending status, and `kubectl describe pods -l app=broken` to see the scheduler's error messages in the Events section
+
+3. **How did you fix it?**
+    I lowered the resource requests in the YAML file to 100m CPU and 128Mi Memory so they could fit within the node's allocatable resources.
+
+4. **Explanation of troubleshooting steps**
+    When the broken-app failed to start, here is the logical flow used to fix it:
+        1. Observation: Used kubectl get pods to identify that the pods were stuck in Pending.
+        2. Discovery: Used kubectl describe pod <pod-name> to look at the Events section. This revealed the "FailedScheduling" message due to "Insufficient cpu" and "Insufficient memory".
+        3. Analysis: Compared the pod's resource requests (5000m CPU) against the actual capacity of the worker nodes.
+        4. Resolution: Modified the deployment manifest to bring resource requests down to a schedulable level (100m CPU).
