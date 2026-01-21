@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: batch-processor
+  namespace: ecommerce
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: batch
+  template:
+    metadata:
+      labels:
+        app: batch
+    spec:
+      priorityClassName: low-priority
+      nodeSelector:
+        tier: frontend
+      tolerations:
+      - key: "workload"
+        operator: "Equal"
+        value: "frontend"
+        effect: "NoSchedule"
+      containers:
+      - name: processor
+        image: busybox
+        command: ["sh", "-c", "sleep 3600"]
+        resources:
+          requests:
+            cpu: "2500m"  # Request 2.5 CPUs to fill node 1 instantly
