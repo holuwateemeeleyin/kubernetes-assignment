@@ -332,3 +332,22 @@ kubectl get pods -l app=frontend -w
 - Screenshot showing 6 replicas running
 - Screenshot of accessing the application
 - Answers to the questions
+
+# Part 6: Create Static Pods for Monitoring (45minutes)
+## Task 6.1: Understand Static Pods
+Static pods are managed directly by the kubelet on a specific node, not by the API server.
+
+## Task 6.2: Create a Monitoring Agent Static Pod
+SSH into worker-node-1:
+`ssh ubuntu@<worker-node-1-ip>`
+Find the kubelet static pod path:
+
+```
+# Check kubelet configuration 
+sudo cat /var/lib/kubelet/config.yaml | grep staticPodPath 
+
+# Usually it's /etc/kubernetes/manifests
+```
+Create a static pod manifest:
+sudo mkdir -p /etc/kubernetes/manifests
+sudo nano /etc/kubernetes/manifests/monitoring-agent.yaml
