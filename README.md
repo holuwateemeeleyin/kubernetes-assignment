@@ -349,5 +349,170 @@ sudo cat /var/lib/kubelet/config.yaml | grep staticPodPath
 # Usually it's /etc/kubernetes/manifests
 ```
 Create a static pod manifest:
+```
 sudo mkdir -p /etc/kubernetes/manifests
+
 sudo nano /etc/kubernetes/manifests/monitoring-agent.yaml
+```
+
+### Static Pod Configuration:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitoring-agent
+  namespace: kube-system
+  labels:
+    app: monitoring
+    component: agent
+spec:
+  containers:
+  - name: agent
+    image: busybox:latest
+    command:
+    - sh
+    - -c
+    - |
+      while true; do
+        echo "$(date): Monitoring node $(hostname)"
+        sleep 30
+      done
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+```
+
+## Task 6.3: Verify Static Pod
+```
+# On the control plane
+kubectl get pods -n kube-system -o wide | grep monitoring
+
+# Check logs
+kubectl logs -n kube-system monitoring-agent-<node-name>
+```
+
+## Task 6.4: Try to Delete the Static Pod
+```
+# Try to delete it
+kubectl delete pod monitoring-agent-<node-name> -n kube-system
+
+# What happens? Check again
+kubectl get pods -n kube-system | grep monitoring
+
+```
+
+### Questions to Answer:
+
+1. What happens when you try to delete a static pod? Why?
+2. How would you actually remove a static pod?
+3. Where does the static pod show up when you run kubectl get pods -A ?
+4. What are the use cases for static pods?
+
+### Submission:
+- Screenshot of static pod running
+- Screenshot showing pod recreation after deletion attempt
+- Static pod manifest file
+- Answers to the questions
+
+# Part 7: Troubleshooting and Recovery (60minutes)
+## Task 7.1: Simulate Node Failure
+### Drain worker-node-1 to simulate maintenance:
+`kubectl drain <worker-node-1> --ignore-daemonsets --delete-emptydir-data`
+Observe:
+```
+# Watch pod rescheduling
+kubectl get pods -o wide --watch
+```
+
+### Questions:
+1. What happened to the pods running on worker-node-1?
+2. Did all pods get rescheduled? Which ones didn't and why?
+3. What happened to the static pod?
+
+## Task 7.2: Bring Node Back Online
+
+`kubectl uncordon <worker-node-1>`
+
+## Task 7.3: Debug a Broken Deployment
+
+Create a intentionally broken deployment:
+
+```yaml
+# Create broken-app.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broken-app
+  namespace: ecommerce
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: broken
+  template:
+    metadata:
+      labels:
+        app: broken
+    spec:
+      nodeSelector:
+        tier: frontend
+      tolerations:
+      - key: workload
+        operator: Equal
+        value: frontend
+        effect: NoSchedule
+      containers:
+      - name: app
+        image: nginx:alpine
+        resources:
+          requests:
+          cpu: 5000m # Intentionally too high!
+          memory: 10Gi
+```
+
+```
+kubectl apply -f broken-app.yaml
+
+# Investigate why pods aren't scheduling
+kubectl get pods -l app=broken
+kubectl describe pods -l app=broken
+```
+
+## Task: Fix the deployment and get all 3 replicas running
+
+### Questions to Answer:
+1. Why aren't the pods scheduling?
+2. What kubectl commands did you use to diagnose the issue?
+3. How did you fix it?
+
+### Submission:
+- Screenshot of drained node
+- Screenshot of pods after rescheduling
+- Explanation of troubleshooting steps
+- Fixed broken-app.yaml
+- Answers to the questions
+
+# Part 8: Advanced Scheduling Scenarios (60minutes)
+## Task 8.1: Implement Pod Priority
+Create priority classes:
+```yaml
+# Create high-priority.yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority
+value: 1000
+globalDefault: false
+description: "High priority class for critical workloads"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+  metadata:
+    name: low-priority
+value: 100
+globalDefault: false
+description: "Low priority class for non-critical workloads"
