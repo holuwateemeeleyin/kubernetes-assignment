@@ -163,3 +163,14 @@
         2. Discovery: Used kubectl describe pod <pod-name> to look at the Events section. This revealed the "FailedScheduling" message due to "Insufficient cpu" and "Insufficient memory".
         3. Analysis: Compared the pod's resource requests (5000m CPU) against the actual capacity of the worker nodes.
         4. Resolution: Modified the deployment manifest to bring resource requests down to a schedulable level (100m CPU).
+## Part 8: Advanced Scheduling Scenarios (60minutes)
+### Questions to Answer:
+
+1. **What happens when high-priority pods need resources?**
+    Kubernetes triggers Preemption. If a high-priority pod cannot be scheduled due to insufficient resources, the scheduler looks for lower-priority pods that it can remove (evict) to clear enough space for the high-priority pod to run.
+
+2. **Which pods get evicted first?**
+    The scheduler evicts pods with the lowest PriorityValue first (the low-priority class).
+
+3. **How does priority affect scheduling decisions?**
+    Priority allows critical workloads to jump to the head of the scheduling queue and physically displace non-critical workloads to ensure high availability.
